@@ -12,3 +12,6 @@ git:
 	@git add .
 	@git commit -m "Changed"
 	@git push
+
+build:
+	@go build -o bin/main.exe cmd/main.go
