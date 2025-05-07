@@ -41,6 +41,7 @@ func main() {
 	log.Println("Connection success!")
 	err = mysqlConn.AutoMigrate(
 		&repo.Product{},
+		&repo.Admin{},
 	)
 	if err != nil {
 		log.Fatal("Migrationda xatolik:", err)

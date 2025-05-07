@@ -6,6 +6,8 @@ type ProductStorageI interface {
 	Create(ctx context.Context, req *Product) (*Product, error)
 	Get(ctx context.Context) (*[]Product, error)
 	GetById(ctx context.Context, id int) (*Product, error)
+	Update(ctx context.Context, id int, updates map[string]interface{}) error
+	Delete(ctx context.Context, id int) error
 }
 type Product struct {
 	Id          uint    `gorm:"primaryKey"`

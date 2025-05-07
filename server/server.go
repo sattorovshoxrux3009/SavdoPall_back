@@ -59,7 +59,13 @@ func NewServer(opts *Options) *fiber.App {
 	})
 	app.Static("/uploads", "./uploads")
 
-	app.Post("/v1/product", handler.CreateProduct)
+	app.Post("/v1/admin", handler.CreateAdmin)
+	app.Post("/v1/login", handler.Login)
+
+	app.Post("/v1/product", handler.AuthMiddleware(), handler.CreateProduct)
+	app.Patch("/v1/product/:id", handler.AuthMiddleware(), handler.UpdateProduct)
+	app.Delete("/v1/product/:id", handler.AuthMiddleware(), handler.DeleteProduct)
+
 	app.Get("/v1/product", handler.GetProduct)
 	app.Get("/v1/product/:id", handler.GetProduct)
 

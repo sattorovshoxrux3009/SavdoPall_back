@@ -139,3 +139,165 @@ func (h *handlerV1) GetProduct(c *fiber.Ctx) error {
 		"Products": products,
 	})
 }
+
+func (h *handlerV1) UpdateProduct(c *fiber.Ctx) error {
+	productId := c.Params("id")
+	if productId == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid product ID"})
+	}
+	id, err := strconv.Atoi(productId)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid product ID"})
+	}
+	_, err = h.strg.Product().GetById(c.Context(), id)
+	if err != nil {
+		if err.Error() == "product not found" {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Product not found"})
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch product"})
+	}
+	updates := make(map[string]interface{})
+
+	// Optional string fields
+	if name := c.FormValue("name"); name != "" {
+		if len(name) < 3 || len(name) > 255 {
+			return c.Status(400).JSON(fiber.Map{"error": "Name must be between 3 and 255 characters"})
+		}
+		updates["name"] = name
+	}
+
+	if desc := c.FormValue("description"); desc != "" {
+		if len(desc) > 255 {
+			return c.Status(400).JSON(fiber.Map{"error": "Description must be max 255 characters"})
+		}
+		updates["description"] = desc
+	}
+
+	// Optional float fields
+	if priceStr := c.FormValue("price"); priceStr != "" {
+		if price, err := strconv.ParseFloat(priceStr, 64); err == nil && price > 0 {
+			updates["price"] = price
+		} else {
+			return c.Status(400).JSON(fiber.Map{"error": "Invalid price"})
+		}
+	}
+
+	if heightStr := c.FormValue("height"); heightStr != "" {
+		if height, err := strconv.ParseFloat(heightStr, 64); err == nil && height > 0 {
+			updates["height"] = height
+		} else {
+			return c.Status(400).JSON(fiber.Map{"error": "Invalid height"})
+		}
+	}
+
+	if widthStr := c.FormValue("width"); widthStr != "" {
+		if width, err := strconv.ParseFloat(widthStr, 64); err == nil && width > 0 {
+			updates["width"] = width
+		} else {
+			return c.Status(400).JSON(fiber.Map{"error": "Invalid width"})
+		}
+	}
+
+	if depthStr := c.FormValue("depth"); depthStr != "" {
+		if depth, err := strconv.ParseFloat(depthStr, 64); err == nil && depth > 0 {
+			updates["depth"] = depth
+		} else {
+			return c.Status(400).JSON(fiber.Map{"error": "Invalid depth"})
+		}
+	}
+
+	// Optional int field
+	if qtyStr := c.FormValue("quantity"); qtyStr != "" {
+		if qty, err := strconv.Atoi(qtyStr); err == nil && qty >= 0 {
+			updates["quantity"] = qty
+		} else {
+			return c.Status(400).JSON(fiber.Map{"error": "Invalid quantity"})
+		}
+	}
+
+	// Optional image
+	file, err := c.FormFile("image")
+	if err == nil && file != nil {
+		// 1. Eski rasm manzilini olish uchun productni bazadan o‘qiymiz
+		fmt.Println(id)
+		product, err := h.strg.Product().GetById(c.Context(), id)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch product for image replacement"})
+		}
+
+		// 2. Yangi rasmni saqlaymiz
+		imageURL, err := saveImage(c, file)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Error saving new image"})
+		}
+
+		// 3. Eski rasmni o‘chiramiz
+		if product.ImgUrl != "" {
+			// Masalan: "/uploads/image.jpg" -> "./uploads/image.jpg"
+			imagePath := "." + product.ImgUrl
+
+			if err := os.Remove(imagePath); err != nil && !os.IsNotExist(err) {
+				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete old image"})
+			}
+		}
+
+		// 4. Yangilanishga rasm URL'ni qo‘shamiz
+		updates["img_url"] = imageURL
+	}
+
+	// Agar hech narsa kelmagan bo‘lsa — foydasiz update
+	if len(updates) == 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "No fields provided for update"})
+	}
+
+	// Update funksiyasini chaqiramiz
+	if err := h.strg.Product().Update(c.Context(), id, updates); err != nil {
+		if err.Error() == "product not found" {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Product not found"})
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update product"})
+	}
+
+	return c.JSON(fiber.Map{"message": "Product updated successfully"})
+}
+
+func (h *handlerV1) DeleteProduct(c *fiber.Ctx) error {
+	// 1. Mahsulot ID'sini olish
+	productId := c.Params("id")
+	if productId == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid product ID"})
+	}
+
+	id, err := strconv.Atoi(productId)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid product ID"})
+	}
+
+	// 2. Mahsulotni bazadan o'chirishdan oldin rasmni o'chirish
+	product, err := h.strg.Product().GetById(c.Context(), id)
+	if err != nil {
+		if err.Error() == "product not found" {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Product not found"})
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch product"})
+	}
+
+	// Agar rasm bor bo'lsa, uni o'chirish
+	if product.ImgUrl != "" {
+		// Faylning to'liq yo'lini olish
+		imagePath := "./" + product.ImgUrl // Rasmni o'chirish uchun to'liq yo'lni tashkil qilamiz
+
+		// Rasmni tizimdan o'chirish
+		if err := os.Remove(imagePath); err != nil && !os.IsNotExist(err) {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete image"})
+		}
+	}
+
+	// 3. Mahsulotni bazadan o'chirish
+	if err := h.strg.Product().Delete(c.Context(), id); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete product"})
+	}
+
+	// 4. Javob qaytarish
+	return c.JSON(fiber.Map{"message": "Product deleted successfully"})
+}

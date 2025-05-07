@@ -7,7 +7,7 @@ import (
 
 type Config struct { // Config turini aniqladik
 	Port  string
-	Mysql    Mysql
+	Mysql Mysql
 }
 
 type Mysql struct {
@@ -24,7 +24,7 @@ func Load(path string) Config {
 	conf.AutomaticEnv()           // Muhit o'zgaruvchilarini avtomatik yuklash
 
 	cfg := Config{
-		Port: conf.GetString("PORT"), 
+		Port: conf.GetString("PORT"),
 		Mysql: Mysql{
 			Host:     conf.GetString("MYSQL_HOST"),
 			Port:     conf.GetString("MYSQL_PORT"),
