@@ -4,6 +4,8 @@ import "context"
 
 type ProductStorageI interface {
 	Create(ctx context.Context, req *Product) (*Product, error)
+	Get(ctx context.Context) (*[]Product, error)
+	GetById(ctx context.Context, id int) (*Product, error)
 }
 type Product struct {
 	Id          uint    `gorm:"primaryKey"`
@@ -14,6 +16,5 @@ type Product struct {
 	Width       float64 `gorm:"not null"`
 	Depth       float64 `gorm:"not null"`
 	Quantity    int     `gorm:"not null"`
-	Left        int     `gorm:"not null"`
 	Description string  `gorm:"size:1000"`
 }

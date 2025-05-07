@@ -57,8 +57,11 @@ func NewServer(opts *Options) *fiber.App {
 	app.Options("/*", func(c *fiber.Ctx) error {
 		return c.SendStatus(204) // No Content
 	})
+	app.Static("/uploads", "./uploads")
 
 	app.Post("/v1/product", handler.CreateProduct)
+	app.Get("/v1/product", handler.GetProduct)
+	app.Get("/v1/product/:id", handler.GetProduct)
 
 	return app
 }

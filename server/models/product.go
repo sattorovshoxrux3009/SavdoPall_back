@@ -8,6 +8,5 @@ type CreateProduct struct {
 	Width       float64 `json:"width" validate:"required,gt=0"`
 	Depth       float64 `json:"depth" validate:"required,gt=0"`
 	Quantity    int     `json:"quantity" validate:"required,gte=0"`
-	Left        int     `json:"left" validate:"required,gte=0"`
 	Description string  `json:"description" validate:"max=1000"`
 }
