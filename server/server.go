@@ -3,6 +3,7 @@ package server
 import (
 	"time"
 
+	v1 "GitHub.com/sattorovshoxrux3009/SavdoPall_back/server/v1"
 	"GitHub.com/sattorovshoxrux3009/SavdoPall_back/storage"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -50,12 +51,14 @@ func NewServer(opts *Options) *fiber.App {
 	}))
 
 	// Handler
-	// handler := v1.New(&v1.HandlerV1{
-	// 	Strg: opts.Strg,
-	// })
+	handler := v1.New(&v1.HandlerV1{
+		Strg: opts.Strg,
+	})
 	app.Options("/*", func(c *fiber.Ctx) error {
 		return c.SendStatus(204) // No Content
 	})
+
+	app.Post("/v1/product", handler.CreateProduct)
 
 	return app
 }
