@@ -31,7 +31,7 @@ func NewServer(opts *Options) *fiber.App {
 	// CORS middleware
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     "*",
-		AllowMethods:     "GET,POST,PUT,DELETE",
+		AllowMethods:     "GET,POST,PUT,DELETE,PATCH",
 		AllowHeaders:     "Origin, Content-Type, Authorization",
 		AllowOriginsFunc: func(origin string) bool { return true }, // OPTIONS muammosini hal qiladi
 		// AllowCredentials: true,
